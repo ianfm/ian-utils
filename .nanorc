@@ -1,0 +1,4 @@
+set tabsize 4
+extendsyntax python tabgives "    "
+extendsyntax makefile tabgives "	"
+
