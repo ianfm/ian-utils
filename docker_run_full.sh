@@ -10,7 +10,6 @@ automodality/amd64-20.04-isaac-marti
 # isaac-marti JETSON
 
 
-
 # isaac-marti AMD
 
 
