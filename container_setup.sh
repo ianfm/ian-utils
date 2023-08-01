@@ -47,7 +47,7 @@ curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo 
 && sudo apt-get -qqy install gh
 
 # Set up github auth
-token=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
+read -p "input your GitHub token" token
 echo ${token} | gh auth login --with-token
 gh config set git_protocol ssh --host github.com
 gh auth status
