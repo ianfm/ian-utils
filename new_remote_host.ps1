@@ -1,15 +1,10 @@
 # Assumes first-time ssh setup is complete
-Set-PSDebug -Trace 1
+#### Set-PSDebug -Trace 1
 
 # These default values are required
 $KeyType='ed25519'
 $KeyDir="$env:USERPROFILE\.ssh"
-
-# These default values are not necessary
-# $RemoteHost='trashbot'
-# $RemoteUser='ian'
 $KeyName="id_$RemoteHost"
-# $KeyDir/$KeyName="$KeyDir\$KeyName"
 
 # Query user for the name or IP of the remote host to establish connection to
 $userInputRemoteHost = Read-Host "Provide the hostname or IP address of the remote host"
@@ -33,8 +28,6 @@ if ($userInputRemoteUser -eq "") {
 # Create the new key
 # enter enter for no password
 ssh-keygen -t $KeyType -f $KeyDir/$KeyName
-
-# TODO: handle key already exists
 
 # Generate the SSH Command to send the pubkey to the remote host
 $PUBKEY = Get-Content $KeyDir\$KeyName.pub
@@ -69,9 +62,11 @@ Start-Service ssh-agent
 Get-Service ssh-agent
 ssh-add $KeyDir/$KeyName
 
-# TODO: add ssh config entry like the following
+# TODO:check for existing entry with same Host name
 Write-Host "Adding remote host entry to ssh config file. Note that you will have to remove any existing entries for the same host!"
-Out-File -FilePath "$KeyDir/config" -InputObject "Host $RemoteHost
+Out-File -FilePath "$KeyDir/config" -InputObject "
+
+Host $RemoteHost
     User $RemoteUser
     IdentityFile $KeyDir/$KeyName
     PreferredAuthentications publickey
@@ -90,6 +85,7 @@ if ($userInputNewContext -eq "y") {
 }
 
 # Create Docker context using the new SSH key
+# TODO: remove same-name context first if it exists 
 $dockerResult = docker context create $RemoteHost --docker "host=ssh://$RemoteHost"
 
 if ($RemoteHost -eq $dockerResult) {
