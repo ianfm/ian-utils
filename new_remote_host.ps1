@@ -6,10 +6,10 @@ $KeyType='ed25519'
 $KeyDir="$env:USERPROFILE\.ssh"
 
 # These default values are not necessary
-$RemoteHost='trashbot'
-$RemoteUser='ian'
+# $RemoteHost='trashbot'
+# $RemoteUser='ian'
 $KeyName="id_$RemoteHost"
-$KeyPath="$KeyDir\$KeyName"
+# $KeyDir/$KeyName="$KeyDir\$KeyName"
 
 # Query user for the name or IP of the remote host to establish connection to
 $userInputRemoteHost = Read-Host "Provide the hostname or IP address of the remote host"
@@ -32,12 +32,12 @@ if ($userInputRemoteUser -eq "") {
 
 # Create the new key
 # enter enter for no password
-ssh-keygen -t $KeyType -f $KeyPath
+ssh-keygen -t $KeyType -f $KeyDir/$KeyName
 
 # TODO: handle key already exists
 
 # Generate the SSH Command to send the pubkey to the remote host
-$PUBKEY = Get-Content $KeyPath.pub
+$PUBKEY = Get-Content $KeyDir\$KeyName.pub
 $CMDSTRING = "echo $PUBKEY >> /home/$RemoteUser/.ssh/authorized_keys"
 $SSHFLAGS='-o PreferredAuthentications=password -o ConnectTimeout=10'
 $fullCommand = "ssh $SSHFLAGS $RemoteUser@$RemoteHost '$CMDSTRING'"
@@ -67,13 +67,13 @@ if ($userInputSshFailCheck -eq "y") {
 # Finally, add the new key to ssh-agent to persist it
 Start-Service ssh-agent
 Get-Service ssh-agent
-ssh-add $KeyPath
+ssh-add $KeyDir/$KeyName
 
 # TODO: add ssh config entry like the following
-Write-Host "Adding remote host entry to ssh config file:"
+Write-Host "Adding remote host entry to ssh config file. Note that you will have to remove any existing entries for the same host!"
 Out-File -FilePath "$KeyDir/config" -InputObject "Host $RemoteHost
     User $RemoteUser
-    IdentityFile $KeyPath
+    IdentityFile $KeyDir/$KeyName
     PreferredAuthentications publickey
     IdentitiesOnly yes
     ForwardX11 yes
