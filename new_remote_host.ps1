@@ -1,7 +1,21 @@
-# Assumes first-time ssh setup is complete
+# SCRIPT:   new_remote_host.ps1
+# PURPOSE:  Create new SSH key/config for a remote host from a Windows 11 machine. 
+#           Optionally create a Docker context for the remote host.
+# AUTHOR:   Ian McMurray
+
+
+# TODOs:
+#       -   Check for existing entries in .ssh/knownhosts that would raise an unrecognized hash error
+#       -   Check for previous entries in remote-host's .ssh/authorized_keys file to avoid polluting it 
+#            and maintain access control
+
+
+# Assumes first-time local machine ssh setup is complete
+# i.e. sshd service enabled and set to run on startup
+#      likewise for ssh-agent
 #### Set-PSDebug -Trace 1
 
-# These default values are required
+# Required defaults
 $KeyType='ed25519'
 $KeyDir="$env:USERPROFILE\.ssh"
 $KeyName="id_$RemoteHost"
@@ -64,6 +78,10 @@ ssh-add $KeyDir/$KeyName
 
 # TODO:check for existing entry with same Host name
 Write-Host "Adding remote host entry to ssh config file. Note that you will have to remove any existing entries for the same host!"
+
+# Append new host entry to .ssh/config
+# TODO: remove existing entry if found 
+#  OR   replace existing entry's key value with new keyname
 Out-File -FilePath "$KeyDir/config" -InputObject "
 
 Host $RemoteHost
@@ -79,18 +97,27 @@ Host $RemoteHost
 $userInputNewContext = Read-Host "Do you want to create an associated docker context? (y/n)"
 if ($userInputNewContext -eq "y") {
     Write-Host "Creating new Docker context $RemoteHost"
+    # Try:
+    $contexts = Invoke-Expression "docker context list"
+    for ($i = 0; $i -lt $contexts.Count; $i++) {
+        if ($contexts[$i].contains($RemoteHost)) {
+            Write-Host "Found existing Docker context $RemoteHost. Removing context..."
+            $RmExpression = "docker context rm $RemoteHost"
+            Invoke-Expression $RmExpression
+            break
+        }
+    }
 } else {
     Write-Host "Not creating a Docker context."
     return
 }
 
 # Create Docker context using the new SSH key
-# TODO: remove same-name context first if it exists 
 $dockerResult = docker context create $RemoteHost --docker "host=ssh://$RemoteHost"
 
 if ($RemoteHost -eq $dockerResult) {
     return "Success"
 } else {
-    Write-Host "Docker command returned an unexpected value"
+    Write-Host "Docker command returned an unexpected value. Context not created."
     return 
 }
