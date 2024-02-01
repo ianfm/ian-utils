@@ -1,0 +1,86 @@
+Host KlipperPi
+    HostName 192.168.68.52
+    User pi
+
+Host github.com
+    HostName github.com
+    IdentityFile ~/.ssh/github-key
+    # IdentityFile ~/.ssh/id_rsa
+ 
+Host 473pi
+    HostName 192.168.1.4
+    User pi
+ 
+ # piros is in docker
+Host rf-pi
+    HostName ubuntu
+    User ubuntu
+    IdentityFile ~/.ssh/id_rsa_ubuntu
+    PreferredAuthentications publickey
+ # RemoteCommand
+ 
+ # still has default login
+Host octopi
+    HostName octopi
+    User pi
+ # IdentityFile ~/.ssh/id_rsa_octopi
+ # PreferredAuthentications publickey
+ 
+# Host am_github
+#     HostName github.com
+#     IdentityFile ~/.ssh/id_rsa_am_github
+
+
+Host orin131
+    User ubuntu
+    IdentityFile C:\Users\ianfm\.ssh\id_orin131
+    PreferredAuthentications publickey
+    IdentitiesOnly yes
+    ForwardX11 yes
+
+Host orin133
+    User ubuntu
+    IdentityFile C:\Users\ianfm\.ssh\id_orin133
+    PreferredAuthentications publickey
+    IdentitiesOnly yes
+    ForwardX11 yes
+
+Host trashbot
+    User ian
+    IdentityFile C:\Users\ianfm\.ssh\id_trashbot
+    PreferredAuthentications publickey
+    IdentitiesOnly yes
+    ForwardX11 yes
+
+Host tycho
+    HostName tycho
+    User ubuntu
+    IdentityFile C:\Users\ianfm\.ssh\id_tycho_glassbox
+    PreferredAuthentications publickey
+    IdentitiesOnly yes
+    ForwardX11 yes
+# holybroooo
+# and brolyho
+# and hella snow
+Host orin111
+    User ubuntu
+    IdentityFile C:\Users\ianfm\.ssh\id_orin111
+    PreferredAuthentications publickey
+    IdentitiesOnly yes
+    ForwardX11 yes
+Host orin129
+    User ubuntu
+    IdentityFile C:\Users\ianfm\.ssh/id_orin129
+    PreferredAuthentications publickey
+    IdentitiesOnly yes
+    ForwardX11 yes
+
+
+Host realpi
+    User daniel
+    HostName 192.168.4.107
+    PreferredAuthentications password
+    IdentitiesOnly yes
+    ForwardX11 yes
+
+

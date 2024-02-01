@@ -8,8 +8,9 @@
 #       -   Check for existing entries in .ssh/knownhosts that would raise an unrecognized hash error
 #       -   Check for previous entries in remote-host's .ssh/authorized_keys file to avoid polluting it 
 #            and maintain access control
+#       -   Check for Docker context in-use before removing and creating new context (fails)
 
-
+# Prerequisites: See https://farmx1.atlassian.net/wiki/spaces/GV/pages/2691465446/Docker+SSH+Context+on+Windows
 # Assumes first-time local machine ssh setup is complete
 # i.e. sshd service enabled and set to run on startup
 #      likewise for ssh-agent
