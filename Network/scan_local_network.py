@@ -8,7 +8,7 @@ from scapy.all import ARP, Ether, srp
 # Function to scan for open ports on a local network
 def scan_local_network():
     # Step 1: Perform an ARP scan to discover devices in the local network
-    target_ip = "192.168.86.0/24"  # Modify this to match your local network
+    target_ip = "192.168.4.0/24"  # Modify this to match your local network
     arp = ARP(pdst=target_ip)
     ether = Ether(dst="ff:ff:ff:ff:ff:ff")
     packet = ether/arp
