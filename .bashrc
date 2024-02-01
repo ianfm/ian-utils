@@ -45,6 +45,17 @@ esac
 # should be on the output of commands, not on the prompt
 force_color_prompt=yes
 
+# Color setup
+RED='\e[31m'
+GREEN='\e[32m'
+YELLOW='\e[33m'
+BLUE='\e[34m'
+PURPLE='\e[35m'
+CYAN='\e[36m'
+WHITE='\e[37m'
+RESET='\e[00m'
+
+
 if [ -n "$force_color_prompt" ]; then
     if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
         # We have color support; assume it's compliant with Ecma-48
@@ -58,7 +69,7 @@ fi
 
 if [ "$color_prompt" = yes ]; then
     #PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
-        PS1='${debian_chroot:+($debian_chroot)}\[\e[33m\]\u\[\e[m\]\[\e[32m\]@\[\e[m\]\[\e[32m\]\h\[\e[m\]:\[\e[34m\]\w\[\e[m\]\[\e[33m\]\\$\[\e[m\] '
+    PS1='${debian_chroot:+($debian_chroot)}\[\e[33m\]\u\[\e[m\]\[\e[32m\]@\[\e[m\]\[\e[32m\]\h\[\e[m\]:\[\e[34m\]\w\[\e[m\]\[\e[33m\]\\$\[\e[m\] '
 else
     PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
 fi
@@ -116,14 +127,12 @@ if ! shopt -oq posix; then
     . /etc/bash_completion
   fi
 fi
-source /opt/ros/humble/install/local_setup.bash
-source /home/ubuntu/ros2_amros/install/local_setup.bash
-source /opt/ros2_ws/install/setup.bash
-source ~/ros2_amros/install/setup.bash
-source ~/ros2_ws/install/setup.bash
+
+source /home/ubuntu/ros2_ws/install/setup.bash
+source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash
 export ROS_LOCALHOST_ONLY=1
 export AM_PLATFORM=amiga
 export PATH=/home/ubuntu/ros2_ws/src/am_dev_scripts/scripts:${PATH}
 
-source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash
 git config --global alias.tree "log --all --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit" 
+xhost +
