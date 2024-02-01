@@ -127,3 +127,4 @@ export PATH=/home/ubuntu/ros2_ws/src/am_dev_scripts/scripts:${PATH}
 
 source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash
 git config --global alias.tree "log --all --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit" 
+git config --global push.autoSetupRemote True

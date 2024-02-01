@@ -3,3 +3,4 @@
 	email = ian@farmx.co
 [alias]
 	tree = log --all --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+# git config --global push.autoSetupRemote True
