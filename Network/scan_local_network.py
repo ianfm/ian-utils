@@ -1,5 +1,6 @@
 import argparse
 import nmap
+from nmap import PortScanner, convert_nmap_output_to_encoding, nmap
 import subprocess
 import re
 from scapy.all import ARP, Ether, srp
@@ -7,7 +8,7 @@ from scapy.all import ARP, Ether, srp
 # Function to scan for open ports on a local network
 def scan_local_network():
     # Step 1: Perform an ARP scan to discover devices in the local network
-    target_ip = "192.168.1.0/24"  # Modify this to match your local network
+    target_ip = "192.168.86.0/24"  # Modify this to match your local network
     arp = ARP(pdst=target_ip)
     ether = Ether(dst="ff:ff:ff:ff:ff:ff")
     packet = ether/arp
@@ -25,7 +26,7 @@ def scan_local_network():
         nm.scan(device['ip'], arguments='-p 80,443,22,8080')  # Add more ports if needed
         if device['ip'] in nm.all_hosts() and nm[device['ip']].all_tcp():
             open_ports.append({'ip': device['ip'], 'hostname': '', 'mac': device['mac'],
-                               'open_ports': list(nm[device['ip']].all_tcp().keys())})
+                               'open_ports': list(nm[device['ip']].all_tcp())})
 
     # Step 3: Classify devices likely to be developer laptops based on open ports
     developer_laptops = []
@@ -49,7 +50,7 @@ def scan_local_network():
 # Function to run the CLI menu
 def main():
     parser = argparse.ArgumentParser(description="Network Scanner Menu")
-    parser.add_argument("--option", type=int, help="Select an option: 1 for Scan Local Network")
+    parser.add_argument( "--option", default=1, type=int, help="Select an option: 1 for Scan Local Network")
     args = parser.parse_args()
 
     if args.option == 1:
