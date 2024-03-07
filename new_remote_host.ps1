@@ -1,3 +1,12 @@
+param (
+    [switch]$dockerOnly = $false, 
+    [string]$hostName,    
+    [string]$ip,
+    [string]$user
+    # [SecureString]$password = $( Read-Host -asSecureString "Input password" )
+)
+# [string]$ip = $(throw "-username is required."),
+
 # SCRIPT:   new_remote_host.ps1
 # PURPOSE:  Create new SSH key/config for a remote host from a Windows 11 machine. 
 #           Optionally create a Docker context for the remote host.
@@ -40,9 +49,13 @@ if ($userInputRemoteUser -eq "") {
     $RemoteUser = $userInputRemoteUser
 }
 
-# Create the new key
-# enter enter for no password
-ssh-keygen -t $KeyType -f $KeyDir/$KeyName
+
+if ($dockerOnly -eq $false) {
+    # Create the new key
+    # enter enter for no password
+    ssh-keygen -t $KeyType -f $KeyDir/$KeyName
+}
+
 
 # Generate the SSH Command to send the pubkey to the remote host
 $PUBKEY = Get-Content $KeyDir\$KeyName.pub
@@ -51,51 +64,54 @@ $SSHFLAGS='-o PreferredAuthentications=password -o ConnectTimeout=10'
 $fullCommand = "ssh $SSHFLAGS $RemoteUser@$RemoteHost '$CMDSTRING'"
 Write-Host "Sending pubkey to remote host:"
 Write-Host "$fullCommand"
-$sshResult = Invoke-Expression "$fullCommand"
 
-# # Check that the initial SSH connection does not time out
-# if ($null -eq $sshResult) {
-#     Write-Host "Pubkey sent"
-# } elseif ($sshResult -like 'timed out') {
-#     Write-Host "Failed to connect to remote"
-#     return "Failed to connect to remote"
-# } else {
-#     Write-Host "ssh command returned an unexpected value"
-#     return 
-# }
+if ($dockerOnly -eq $false) {
+    $sshResult = Invoke-Expression "$fullCommand"
 
-# Hacky check that the initial SSH connection does not time out
-$userInputSshFailCheck = Read-Host "Did the ssh command time out? (y/n)"
-if ($userInputSshFailCheck -eq "y") {
-    Write-Host "Failed to send pubkey. Aborting"
-    Write-Host "The captured ssh output was $sshResult"
-    return
-}
+    # # Check that the initial SSH connection does not time out
+    # if ($null -eq $sshResult) {
+    #     Write-Host "Pubkey sent"
+    # } elseif ($sshResult -like 'timed out') {
+    #     Write-Host "Failed to connect to remote"
+    #     return "Failed to connect to remote"
+    # } else {
+    #     Write-Host "ssh command returned an unexpected value"
+    #     return 
+    # }
 
-# Finally, add the new key to ssh-agent to persist it
-Start-Service ssh-agent
-Get-Service ssh-agent
-ssh-add $KeyDir/$KeyName
+    # Hacky check that the initial SSH connection does not time out
+    $userInputSshFailCheck = Read-Host "Did the ssh command time out? (y/n)"
+    if ($userInputSshFailCheck -eq "y") {
+        Write-Host "Failed to send pubkey. Aborting"
+        Write-Host "The captured ssh output was $sshResult"
+        return
+    }
 
-# TODO:check for existing entry with same Host name
-Write-Host "Adding remote host entry to ssh config file. Note that you will have to remove any existing entries for the same host!"
+    # Finally, add the new key to ssh-agent to persist it
+    Start-Service ssh-agent
+    Get-Service ssh-agent
+    ssh-add $KeyDir/$KeyName
+    
+    # TODO:check for existing entry with same Host name
+    Write-Host "Adding remote host entry to ssh config file. Note that you will have to remove any existing entries for the same host!"
+    
+    # Append new host entry to .ssh/config
+    # TODO: remove existing entry if found 
+    #  OR   replace existing entry's key value with new keyname
+    Out-File -FilePath "$KeyDir/config" -InputObject "
 
-# Append new host entry to .ssh/config
-# TODO: remove existing entry if found 
-#  OR   replace existing entry's key value with new keyname
-Out-File -FilePath "$KeyDir/config" -InputObject "
-
-Host $RemoteHost
+    Host $RemoteHost
     User $RemoteUser
-    IdentityFile $KeyDir/$KeyName
-    PreferredAuthentications publickey
-    IdentitiesOnly yes
-    ForwardX11 yes
-
-" -Append -Encoding utf8 -NoClobber
-
+        IdentityFile $KeyDir/$KeyName
+        PreferredAuthentications publickey
+        IdentitiesOnly yes
+        ForwardX11 yes
+        
+        " -Append -Encoding utf8 -NoClobber
+}
+    
 # Ask if user wants a docker context too
-$userInputNewContext = Read-Host "Do you want to create an associated docker context? (y/n)"
+$userInputNewContext = Read-Host "Do you want to create a docker context for $RemoteHost (y/n)"
 if ($userInputNewContext -eq "y") {
     Write-Host "Creating new Docker context $RemoteHost"
     # Try:
