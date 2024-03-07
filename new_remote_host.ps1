@@ -21,14 +21,22 @@ $KeyType='ed25519'
 $KeyDir="$env:USERPROFILE\.ssh"
 $KeyName="id_$RemoteHost"
 
-# Query user for the name or IP of the remote host to establish connection to
-$userInputRemoteHost = Read-Host "Provide the hostname or IP address of the remote host"
-if ($userInputRemoteHost -eq "") {
-    Write-Host "No host was selected. Aborting"
+# Query user for the IP, hostname, and user of the remote host to establish connection to
+$userInputRemoteHostIp = Read-Host "Provide the IP address of the remote host"
+if ($userInputRemoteHostIp -eq "") {
+    Write-Host "No IP was provided. Aborting"
     return
 } else {
-    $RemoteHost = $userInputRemoteHost
-    $KeyName="id_$RemoteHost"
+    $RemoteHostIp = $userInputRemoteHostIp
+}
+
+$userInputRemoteHostName = Read-Host "Provide the Hostname of the remote host (you will use this with the ssh command)"
+if ($userInputRemoteHostName -eq "") {
+    Write-Host "No hostname was provided. Aborting"
+    return
+} else {
+    $RemoteHostName = $userInputRemoteHostName
+    $KeyName="id_$RemoteHostName"
 }
 
 # Query user for the username to log in with on the remote host
@@ -48,7 +56,7 @@ ssh-keygen -t $KeyType -f $KeyDir/$KeyName
 $PUBKEY = Get-Content $KeyDir\$KeyName.pub
 $CMDSTRING = "echo $PUBKEY >> /home/$RemoteUser/.ssh/authorized_keys"
 $SSHFLAGS='-o PreferredAuthentications=password -o ConnectTimeout=10'
-$fullCommand = "ssh $SSHFLAGS $RemoteUser@$RemoteHost '$CMDSTRING'"
+$fullCommand = "ssh $SSHFLAGS $RemoteUser@$RemoteHostIp '$CMDSTRING'"
 Write-Host "Sending pubkey to remote host:"
 Write-Host "$fullCommand"
 $sshResult = Invoke-Expression "$fullCommand"
@@ -85,7 +93,8 @@ Write-Host "Adding remote host entry to ssh config file. Note that you will have
 #  OR   replace existing entry's key value with new keyname
 Out-File -FilePath "$KeyDir/config" -InputObject "
 
-Host $RemoteHost
+Host $RemoteHostName
+    HostName $RemoteHostIp
     User $RemoteUser
     IdentityFile $KeyDir/$KeyName
     PreferredAuthentications publickey
