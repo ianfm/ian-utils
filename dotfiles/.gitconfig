@@ -1,6 +1,7 @@
 [user]
 	name = Ian McMurray
-	email = ian@farmx.co
+	email = ianf.mcmurray@gmail.com
 [alias]
 	tree = log --all --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
-# git config --global push.autoSetupRemote True
+[push]
+	autoSetupRemote = True

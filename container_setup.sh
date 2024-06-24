@@ -31,7 +31,7 @@ extendsyntax makefile tabgives "	"
 if [ -f ~/.ssh/id_github ]; then
     echo "key exists, skipping keygen"
 else
-    ssh-keygen -t rsa -b 4096 -C "ianf.mcmurray@gmail.com" -f "/home/ubuntu/.ssh/id_github" -N ""
+    ssh-keygen -t ed25519 -C "ianf.mcmurray@gmail.com" -f "/home/ubuntu/.ssh/id_github" -N ""
     # eval "$(ssh-agent -s)"
     # ssh-add /home/ubuntu/.ssh/id_github
 fi

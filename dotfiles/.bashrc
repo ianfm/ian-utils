@@ -128,14 +128,27 @@ if ! shopt -oq posix; then
   fi
 fi
 
+# Set up ROS2 / AMROS shell environment
 source /home/ubuntu/ros2_ws/install/setup.bash
 source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash
 export ROS_LOCALHOST_ONLY=1
 export AM_PLATFORM=amiga
 export PATH=/home/ubuntu/ros2_ws/src/am_dev_scripts/scripts:${PATH}
 
-git config --global alias.tree "log --all --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit" 
-git config --global push.autoSetupRemote True
+
+# this actually goes in ~/.gitconfig
+# git config --global alias.tree "log --all --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit" 
+# git config --global push.autoSetupRemote True
+
+# Allow remote host graphics sharing
 xhost +
 
+# Capture and append every shell's CLI history on exit
 trap /home/ubuntu/.collect_history.sh EXIT
+
+
+# Add git info to prompt
+if [ -f "$HOME/.bash-git-prompt/gitprompt.sh" ]; then
+    GIT_PROMPT_ONLY_IN_REPO=1
+    source "$HOME/.bash-git-prompt/gitprompt.sh"
+fi
