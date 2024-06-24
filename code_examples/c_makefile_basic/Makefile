@@ -1,6 +1,6 @@
 # Basic Makefile
 
-all: build run
+default: build
 
 build: 
 	g++ hello_world.cpp
@@ -11,7 +11,7 @@ build-debug:
 run: build
 	./a.out
 
-debug:build-debug
+debug: build-debug
 	./a.out
 
 clean:

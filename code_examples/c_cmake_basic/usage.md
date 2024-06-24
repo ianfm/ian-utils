@@ -11,3 +11,9 @@ cmake ..
 make
 ./hello_world
 ```
+
+## Dependencies
+
+```
+sudo apt install gcc gdb make cmake valgrind
+```
