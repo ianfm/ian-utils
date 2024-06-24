@@ -5,6 +5,8 @@ In this case, callgrind seems to track function calls throughout the program's e
 
 Add 2 options for timestamping and run callgrind on prog
 
-`valgrind --tool=callgrind --collect-systime=usec --time-stamp=yes ./prog`
+```
+valgrind --tool=callgrind --collect-systime=usec --time-stamp=yes ./prog
+```
 
 Review the output file at [callgrind.out.%p] where %p is the PID of the process traced.
