@@ -10,6 +10,7 @@ RemoteUser="ubuntu"
 # Query user for the name or IP of the remote host to establish connection to
 echo "Provide the hostname or IP address of the remote host: "
 read userInputRemoteHost
+read -p "username: " RemoteUser
 
 if [ -z $userInputRemoteHost ] ; then
     echo "No host was selected. Aborting"
@@ -39,7 +40,7 @@ fi
 
 
 # Copy key to target host
-ssh-copy-id -o PreferredAuthentications=password -i "$KeyDir/$KeyName.pub" ubuntu@$RemoteHost
+ssh-copy-id -o PreferredAuthentications=password -i "$KeyDir/$KeyName.pub" $RemoteUser@$RemoteHost
 
 #Create ssh config entry
 echo "
@@ -75,19 +76,16 @@ if [ $userInputNewContext == "y" ]; then
     fi
 fi
 
+
 # Create Docker context using the new SSH key
-$dockerResult="docker context create $RemoteHost --docker \"host=ssh://$RemoteHost\""
-# docker context create orin132 --docker "host=ssh://orin132"
+dockerResult=$(docker context create $RemoteHost --docker "host=ssh://$RemoteHost")
 
-if ($RemoteHost == $dockerResult) {
-    echo "Host $RemoteHost can now be accessed via ssh/docker"
-} else {
-    echo "Docker command returned an unexpected value: "
-    echo "$dockerResult"
-    echo "Context not created."
-    exit 0 
-}
-
+if [[ $RemoteHost == $dockerResult ]]; then
+    echo "Success"
+else
+    echo "Docker command returned an unexpected value. Context not created."
+    exit 1
+fi
 
 
     
