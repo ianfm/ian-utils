@@ -66,6 +66,8 @@ if [ $userInputNewContext == "y" ]; then
         for i in "${!contexts[@]}"; do
 	        if [[ "${contexts[$i]}" == *"$RemoteHost"* ]]; then
 	            echo "Found existing Docker context $RemoteHost. Removing context..."
+                # switch to default context in case context to be removed is in use
+	            docker context use default
 	            docker context rm "$RemoteHost"
 	            break
 	        fi
@@ -88,25 +90,28 @@ else
 fi
 
 
-    
-    
-    
-    
-    
-    
-#     for ($i = 0; $i -lt $contexts.Count; $i++) {
-#         if ($contexts[$i].contains($RemoteHost)) {
-#             Write-Host "Found existing Docker context $RemoteHost. Removing context..."
-#             $RmExpression = "docker context rm $RemoteHost"
-#             Invoke-Expression $RmExpression
-#             break
-#         }
-#     }
-# } else {
-#     Write-Host "Not creating a Docker context."
-#     return
-# }
+## Sample output
+# -----------------------------------------------------------------------------
+# Provide the hostname or IP address of the remote host: 
+# orin111
+# username: ubuntu
+# userInputRemoteHost = orin111
+# KeyName = id_orin111
+# key exists, skipping keygen
+# /usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/home/ianx/.ssh/id_orin111.pub"
+# /usr/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
 
+# /usr/bin/ssh-copy-id: WARNING: All keys were skipped because they already exist on the remote system.
+#                 (if you think this is a mistake, you may want to use -f option)
 
+# Do you want to create an associated docker context? (y/n): 
+# y
+# Creating new Docker context orin111
+# Found existing Docker context orin111. Removing context...
+# default
+# Current context is now "default"
+# orin111
+# Successfully created context "orin111"
+# Success
 
 
