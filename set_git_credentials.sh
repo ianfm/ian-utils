@@ -3,7 +3,6 @@
 # Prompt the user for their Git credentials
 echo "Please enter your Git credentials."
 
-
 read -p "github username: " username
 read -p "github email: " email
 echo "github password: " 
