@@ -91,7 +91,6 @@ Host $RemoteHost
     PreferredAuthentications publickey
     IdentitiesOnly yes
     ForwardX11 yes
-
 " -Append -Encoding utf8 -NoClobber
 
 # Ask if user wants a docker context too
