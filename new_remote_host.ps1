@@ -10,6 +10,10 @@
 #            and maintain access control
 #       -   Check for Docker context in-use before removing and creating new context (fails)
 
+
+# completed features
+#       -   Prevent shell hang after sending the key to remote host
+
 # Prerequisites: See https://farmx1.atlassian.net/wiki/spaces/GV/pages/2691465446/Docker+SSH+Context+on+Windows
 # Assumes first-time local machine ssh setup is complete
 # i.e. sshd service enabled and set to run on startup
@@ -46,12 +50,26 @@ ssh-keygen -t $KeyType -f $KeyDir/$KeyName
 
 # Generate the SSH Command to send the pubkey to the remote host
 $PUBKEY = Get-Content $KeyDir\$KeyName.pub
-$CMDSTRING = "echo $PUBKEY >> /home/$RemoteUser/.ssh/authorized_keys"
-$SSHFLAGS='-o PreferredAuthentications=password -o ConnectTimeout=10'
+$CMDSTRING = "echo $PUBKEY >> /home/$RemoteUser/.ssh/authorized_keys && exit"
+
+# $SSHFLAGS='-o PreferredAuthentications=password -o ConnectTimeout=10'
+# Split the flags into an array
+$SSHFLAGS = @('-o', 'PreferredAuthentications=password', '-o', 'ConnectTimeout=10')
+
+
 $fullCommand = "ssh $SSHFLAGS $RemoteUser@$RemoteHost '$CMDSTRING'"
 Write-Host "Sending pubkey to remote host:"
 Write-Host "$fullCommand"
-$sshResult = Invoke-Expression "$fullCommand"
+# $sshResult = Invoke-Expression "$fullCommand"
+
+# avoid "invoke-expression"
+$sshResult = & ssh @SSHFLAGS "$RemoteUser@$RemoteHost" "$CMDSTRING" 2>&1
+
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "SSH command failed. Error details:"
+    Write-Host $sshResult
+}
 
 # # Check that the initial SSH connection does not time out
 # if ($null -eq $sshResult) {
