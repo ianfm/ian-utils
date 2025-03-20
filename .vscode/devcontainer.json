@@ -1,0 +1,15 @@
+{
+	"workspaceFolder": "/home/ubuntu/ros2_ws",
+	"extensions": [
+		"ms-vscode.cpptools",
+		"ms-vscode.cpptools-extension-pack",
+		"ms-vscode.cpptools-themes",
+		"twxs.cmake",
+		"ms-vscode.cmake-tools",
+		"ms-python.python",
+		"ms-python.debugpy",
+		"ms-python.vscode-pylance",
+		"ms-iot.vscode-ros",
+		"nonanonno.vscode-ros2",
+	]
+}
