@@ -6,9 +6,10 @@ import re
 from scapy.all import ARP, Ether, srp
 
 # Function to scan for open ports on a local network
-def scan_local_network():
+def scan_local_network(target_ip):
     # Step 1: Perform an ARP scan to discover devices in the local network
-    target_ip = "192.168.4.0/24"  # Modify this to match your local network
+    print("Scanning for devices in network ", target_ip)
+    print("This might take a minute or so...")
     arp = ARP(pdst=target_ip)
     ether = Ether(dst="ff:ff:ff:ff:ff:ff")
     packet = ether/arp
@@ -51,10 +52,18 @@ def scan_local_network():
 def main():
     parser = argparse.ArgumentParser(description="Network Scanner Menu")
     parser.add_argument( "--option", default=1, type=int, help="Select an option: 1 for Scan Local Network")
+    parser.add_argument( "--network", default='192.168.1.0/24', type=str, help="Scan this network")
     args = parser.parse_args()
 
     if args.option == 1:
-        scan_local_network()
+        if isinstance(args.network, str):
+            # check that target_ip is a valid IP address or CIDR notation
+            if not re.match(r'^\d{1,3}(\.\d{1,3}){3}(/\d{1,2})?$', args.network):
+                print("Invalid IP address or CIDR notation. Try '--network 192.168.1.0/24'")
+            else:
+                scan_local_network(args.network)
+        else:
+            print("Please provide a valid IP address or CIDR notation like '192.168.4.0/24' as a string")
     else:
         print("Invalid option. Please select a valid option from the menu.")
 
