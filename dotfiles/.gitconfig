@@ -5,3 +5,5 @@
 	tree = log --all --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
 [push]
 	autoSetupRemote = True
+[credential]
+        helper = cache --timeout=1000000
