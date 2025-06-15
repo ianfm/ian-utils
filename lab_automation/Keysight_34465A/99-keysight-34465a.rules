@@ -1,0 +1,3 @@
+#/etc/udev/rules.d/99-keysight-34465a.rules                                              
+# Keysight 34465A DMM 6-1/2 digit
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="2a8d",  ATTRS{product}=="34465A", GROUP="dialout", MODE="0666"
