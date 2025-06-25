@@ -4,7 +4,6 @@
 KeyType='ed25519'
 KeyDir="$HOME/.ssh"
 KeyName="id_$RemoteHost"
-UserEmail="ianf.mcmurray@gmail.com"
 RemoteUser="ubuntu"
 
 # Query user for the name or IP of the remote host to establish connection to
@@ -44,7 +43,6 @@ ssh-copy-id -o PreferredAuthentications=password -i "$KeyDir/$KeyName.pub" $Remo
 
 #Create ssh config entry
 echo "
-
 Host $RemoteHost
     User $RemoteUser
     IdentityFile $KeyDir/$KeyName
@@ -72,22 +70,23 @@ if [ $userInputNewContext == "y" ]; then
 	            break
 	        fi
         done
-    else
-        echo "Not creating a Docker context."
-        exit 0
     fi
-fi
 
+    # Create Docker context using the new SSH key
+    dockerResult=$(docker context create $RemoteHost --docker "host=ssh://$RemoteHost")
 
-# Create Docker context using the new SSH key
-dockerResult=$(docker context create $RemoteHost --docker "host=ssh://$RemoteHost")
-
-if [[ $RemoteHost == $dockerResult ]]; then
-    echo "Success"
+    if [[ $RemoteHost == $dockerResult ]]; then
+        echo "Success"
+    else
+        echo "Docker command returned an unexpected value. Context not created."
+        exit 1
+    fi
 else
-    echo "Docker command returned an unexpected value. Context not created."
-    exit 1
+    echo "Not creating a Docker context."
+    exit 0
 fi
+
+
 
 
 ## Sample output
