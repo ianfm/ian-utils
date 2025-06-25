@@ -32,7 +32,7 @@ fi
 if [ -f "$KeyDir/$KeyName" ]; then
     echo "key exists, skipping keygen"
 else
-    ssh-keygen -t ed25519 -C $UserEmail -f "$KeyDir/$KeyName" -N ""
+    ssh-keygen -t ed25519 -C $(uname -n) -f "$KeyDir/$KeyName" -N ""
     eval "$(ssh-agent -s)"
     ssh-add "$KeyDir/$KeyName"
 fi
