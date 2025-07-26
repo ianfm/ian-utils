@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Bambu Studio
+Comment=Bambu studio shortcut
+Exec=/usr/bin/bambu.AppImage
+Icon=/usr/share/bambu/bambu.png
+Terminal=false
+Type=Application
+Categories=Utility;Application;
