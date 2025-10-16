@@ -28,7 +28,6 @@ fi
 # echo "KeyDir = $KeyDir"
 
 # Create the new key
-
 if [ -f "$KeyDir/$KeyName" ]; then
     echo "key exists, skipping keygen"
 else
@@ -91,26 +90,24 @@ fi
 
 ## Sample output
 # -----------------------------------------------------------------------------
+# ian@lenai:~/src/ian-utils$ ./remote_development/new_remote_host.sh 
 # Provide the hostname or IP address of the remote host: 
-# orin111
-# username: ubuntu
-# userInputRemoteHost = orin111
-# KeyName = id_orin111
+# flashy
+# username: good
+# userInputRemoteHost = flashy
+# KeyName = id_flashy
 # key exists, skipping keygen
-# /usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/home/ianx/.ssh/id_orin111.pub"
+# /usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/home/ian/.ssh/id_flashy.pub"
 # /usr/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
+# /usr/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
+# good@flashy's password: 
 
-# /usr/bin/ssh-copy-id: WARNING: All keys were skipped because they already exist on the remote system.
-#                 (if you think this is a mistake, you may want to use -f option)
+# Number of key(s) added: 1
+
+# Now try logging into the machine, with:   "ssh -o 'PreferredAuthentications=password' 'good@flashy'"
+# and check to make sure that only the key(s) you wanted were added.
 
 # Do you want to create an associated docker context? (y/n): 
-# y
-# Creating new Docker context orin111
-# Found existing Docker context orin111. Removing context...
-# default
-# Current context is now "default"
-# orin111
-# Successfully created context "orin111"
-# Success
-
+# n
+# Not creating a Docker context.
 
