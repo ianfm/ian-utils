@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-set -euo pipefail
-set +x
+set -euo pipefail +x
+# set +x
 
 # AppImages suck. Install them for real!
 # Run this from wherever the .AppImage is located, probably /home/$USER/Downloads
@@ -9,8 +9,8 @@ set +x
 # Should be able to get the right values from the existing install
 
 # Set these correctly for your appimage after extracting it
-IMAGE="Logic-2.4.29-linux-x64.AppImage"
-APPNAME="Logic"
+IMAGE="Inkscape-xxx.AppImage"
+APPNAME="Inkscape"
 APPDIR="/opt/$APPNAME"
 TEMPDIR="./squashfs-root"
 
@@ -27,8 +27,7 @@ extract_appimage() {
     echo "making $IMAGE executable"
     chmod +x "$IMAGE"
     echo "extracting $IMAGE to $TEMPDIR"
-    "./$IMAGE" --appimage-extract > /dev/null
-    # "./$IMAGE" --appimage-extract 2&>1 > /dev/null  # somehow prevents file extraction???
+    "$IMAGE" --appimage-extract > /dev/null
 
     if [[ -d "$TEMPDIR" ]]; then
         echo "extracted $IMAGE to $TEMPDIR"
@@ -79,11 +78,6 @@ find_components() {
     read -r -p "Paste the path to the executable: " exefile
     read -r -p "Proceed to install with these files? [y/n] " ans
 
-    # For example, these are correct for Logic 2.4.29
-    #./squashfs-root/Logic.desktop
-    #./squashfs-root/resources/linux-x64/LogicIcon.png
-    #./squashfs-root/Logic
-
     if [[ $ans == y || $ans == Y ]]; then
         ICON="$iconfile"
         DESKTOP="$deskfile"
@@ -94,7 +88,8 @@ find_components() {
     fi
 }
 
-report_appimage() {
+
+install_appimage() {
     ## Perform the installation if identified values are correct
     echo ""
     echo ""
@@ -106,7 +101,7 @@ report_appimage() {
     echo "ICON:    $ICON"
     echo "DESKTOP: $DESKTOP"
     echo "EXE:     $EXE"
-    echo -e "----------------\n\n"
+    echo "----------------"
 
     # Calculate final file locations
     FINAL_ICON="/usr/share/$APPNAME/$(basename "$ICON")"
@@ -126,39 +121,46 @@ report_appimage() {
     echo "            -> $APPDIR"
     echo -e "----------------\n\n"
 
-    sleep 5
+
+    read -r -p "install the appimage with the above settings? [y/n] " ans
+    if [[ $ans =~ ^[Yy]$ ]]; then
+        echo "installing appimage"
+    else
+        echo "exiting"
+        exit 1
+    fi
 
     # Copy files to their final locations
-    echo "#copying icon to /usr/share/$APPNAME/"
-    echo "sudo mkdir -p \"/usr/share/$APPNAME\""
-    echo "sudo cp \"$ICON\" \"$FINAL_ICON\""
+    echo "copying icon to /usr/share/$APPNAME/"
+    sudo mkdir -p "/usr/share/$APPNAME"
+    sudo cp "$ICON" "$FINAL_ICON"
 
-    echo "#updating icon and exec fields in desktop file"
+    echo "updating icon and exec fields in desktop file"
     # update Exec and Icon fields with final paths
     sed -i -E "s|^Exec=.*$|Exec=${FINAL_EXE} --no-sandbox|"  "$DESKTOP"
     sed -i -E "s|^Icon=.*$|Icon=${FINAL_ICON}|" "$DESKTOP"
 
-    echo -e "\n\ndesktop file contents:"
-    echo "-----------------"
     cat "$DESKTOP"
-    echo "-----------------"
-    echo -e "\n\n#Does the desktop file look ok?"
+    read -r -p "Does the desktop file look ok? [y/n] " ans
 
-    sleep 5
+    if [[ $ans == y || $ans == Y ]]; then
+        # install desktop entry and move extracted payload
+        sudo desktop-file-install "$DESKTOP"
+        mkdir -p "/home/$USER/Desktop"
+        # -a preserves file attributes
+        sudo cp -a "$DESKTOP" "/home/$USER/Desktop/"
 
-    # install desktop entry and move extracted payload
-    echo "sudo desktop-file-install \"$DESKTOP\""
-    echo "mkdir -p \"/home/$USER/Desktop\""
-    echo "cp \"$DESKTOP\" \"/home/$USER/Desktop/\""
-    echo "cp \"$DESKTOP\" \"/usr/share/applications/\""
-    # Desktop files should go to  /usr/share/applications/ for system visibility
-
-    echo "#moving contents of $TEMPDIR to $APPDIR"
-    echo "sudo mkdir -p \"/opt\""
-    # -T ensures destination treated as a normal target path, not dir merge
-    echo "sudo mv -T \"$TEMPDIR\" \"$APPDIR\""
-
+        echo "moving contents of $TEMPDIR to $APPDIR"
+        sudo mkdir -p "/opt"
+        # -T ensures destination treated as a normal target path, not dir merge
+        sudo mv -T "$TEMPDIR" "$APPDIR"
+    else
+        echo "desktop file not accepted. Exiting"
+        exit 1
+    fi
 }
+
+
 
 ### ----------------------------------------------------------------
 ###                      Script Entrypoint
@@ -183,7 +185,7 @@ find_components
 echo ""
 read -r -p "Install now with auto-detected values (y), select components manually (n), or exit (x)? [y/n/x] " ans
 if [[ $ans == y || $ans == Y ]]; then
-    report_appimage
+    install_appimage
     exit 0
 else
     echo "exiting"
