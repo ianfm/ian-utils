@@ -10,9 +10,26 @@ Most useful files for me:
 - `dotfiles/.nanorc` because NOBODY EVER ASKED FOR 8-SPACE TABS
 - `/powershell/add_git_completion.ps1` to make git way more usable on windows
 
+## Public vs private
+
+This repo is public, so it holds only things that work on anyone's machine and
+name no specific host, network or project. Anything that names my machines or a
+client's project lives in a separate private repo, `ian-utils-private`. The two
+are independent clones -- no submodules, nothing shared between them.
+
+Roughly:
+
+| here (public) | `ian-utils-private` |
+| --- | --- |
+| generic, reusable, no host or project names | names a specific host, network, or project |
+| appimage tooling, Makefiles, code examples, openocd fragments | `.ssh/config`, per-project setup scripts, real image paths |
+
+The openocd fragments use `PROJECT` as a placeholder where a real project name
+used to be; substitute your own.
+
 It's pretty messy right now and a few scripts use my name and email for things, so be aware. I'll strip that as I get to it now that I've made this repo public.
 
-To remove/sanitize:
-- `/dotfiles`
-- `/git`
-- `/PN`
+Still to sanitize:
+- `/remote_development/windows_setup_ssh.ps1` (hostname + public key)
+- `/ros_dev.dockerfile` (host-specific key filename)
+- `/docker`, `/git`, `/PN` (name and email)
