@@ -2,7 +2,7 @@
 # This is experimental based on the cfg fragments in this dir
 
 # executable is at $(pwd)/$(IMAGEBASE).elf
-IMAGEBASE=original_source/images/pelagic_vms
+IMAGEBASE=original_source/images/PROJECT
 
 GDB=gdb-multiarch
 JLINK=JLinkCommander

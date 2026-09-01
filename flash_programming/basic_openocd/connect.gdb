@@ -1,4 +1,4 @@
-# GDB server port is 3333 by default but explicitly set to 2331 in stm32l4_pelagic_flash.cfg
+# GDB server port is 3333 by default but explicitly set to 2331 in stm32l4_flash.cfg
 target extended-remote localhost:2331
 monitor reset halt
 
