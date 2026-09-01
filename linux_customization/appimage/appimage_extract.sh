@@ -27,7 +27,7 @@ extract_appimage() {
     echo "making $IMAGE executable"
     chmod +x "$IMAGE"
     echo "extracting $IMAGE to $TEMPDIR"
-    "./$IMAGE" --appimage-extract > /dev/null
+    "$IMAGE" --appimage-extract > /dev/null
     # "./$IMAGE" --appimage-extract 2&>1 > /dev/null  # somehow prevents file extraction???
 
     if [[ -d "$TEMPDIR" ]]; then

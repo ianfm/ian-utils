@@ -1,0 +1,135 @@
+# Problems encountered installing various appimages
+
+Log the install output, result of opening the application from the system tray, then the result of opening from terminal.
+Note any options required or disallowed.
+
+## nRF Connect for Desktop
+
+Installation
+
+```
+ian@badalien:~/Downloads/Apps$ ~/src/ian-utils/linux_customization/appimage_install.sh ./nrfconnect-5.3.2-x86_64.AppImage 
+making ./nrfconnect-5.3.2-x86_64.AppImage executable
+extracting ./nrfconnect-5.3.2-x86_64.AppImage to ./squashfs-root
+extracted ./nrfconnect-5.3.2-x86_64.AppImage to ./squashfs-root
+
+
+App details identified after extraction: 
+IMAGE:   ./nrfconnect-5.3.2-x86_64.AppImage
+APPNAME: nRF-Connect-for-Desktop
+APPDIR:  /opt/nRF-Connect-for-Desktop
+----------------
+Look for the executable, desktop file, and icon. The icon might be buried!
+When you find them, paste the absolute paths to executable and icon into the prompt
+
+Desktop file(s):
+./squashfs-root/nrfconnect.desktop
+----------------
+Icon candidates:
+./squashfs-root/nrfconnect.png
+----------------
+Executable candidates:
+./squashfs-root/AppRun
+----------------
+Paste the path to the desktop file: ./squashfs-root/nrfconnect.desktop
+Paste the path to the icon file: ./squashfs-root/nrfconnect.png
+Paste the path to the executable: ./squashfs-root/AppRun
+Proceed to install with these files? [y/n] y
+
+Install now with auto-detected values (y), select components manually (n), or exit (x)? [y/n/x] y
+
+
+current settings:
+----------------
+IMAGE:   ./nrfconnect-5.3.2-x86_64.AppImage
+APPNAME: nRF-Connect-for-Desktop
+APPDIR:  /opt/nRF-Connect-for-Desktop
+ICON:    ./squashfs-root/nrfconnect.png
+DESKTOP: ./squashfs-root/nrfconnect.desktop
+EXE:     ./squashfs-root/AppRun
+----------------
+
+Files will be copied to:
+----------------
+ICON:    ./squashfs-root/nrfconnect.png
+            -> /usr/share/nRF-Connect-for-Desktop/nrfconnect.png
+EXE:     ./squashfs-root/AppRun
+            -> /opt/nRF-Connect-for-Desktop/AppRun
+DESKTOP: ./squashfs-root/nrfconnect.desktop
+            -> /usr/share/applications/nrfconnect.desktop
+APPDIR:  ./squashfs-root
+            -> /opt/nRF-Connect-for-Desktop
+----------------
+
+
+install the appimage with the above settings? [y/n] y
+installing appimage
+copying icon to /usr/share/nRF-Connect-for-Desktop/
+[sudo] password for ian: 
+updating icon and exec fields in desktop file
+[Desktop Entry]
+Name=nRF Connect for Desktop
+Exec=/opt/nRF-Connect-for-Desktop/AppRun --no-sandbox
+Terminal=false
+Type=Application
+Icon=/usr/share/nRF-Connect-for-Desktop/nrfconnect.png
+StartupWMClass=nRF Connect for Desktop
+X-AppImage-Version=5.3.2
+Comment=nRF Connect for Desktop
+Categories=Development;
+Does the desktop file look ok? [y/n] y
+/usr/share/applications/nrfconnect.desktop: warning: value "nRF Connect for Desktop" for key "Comment" in group "Desktop Entry" looks the same as that of key "Name"
+moving contents of ./squashfs-root to /opt/nRF-Connect-for-Desktop
+```
+
+
+System tray launch failed, no observable result.
+
+
+Terminal launch failed, sandbox issue
+
+```
+ian@badalien:~/Downloads/Apps$ /opt/nRF-Connect-for-Desktop/AppRun
+[3934219:0717/120026.646405:FATAL:setuid_sandbox_host.cc(163)] The SUID sandbox helper binary was found, but is not configured correctly. Rather than run without sandboxing I'm aborting now. You need to make sure that /opt/nRF-Connect-for-Desktop/chrome-sandbox is owned by root and has mode 4755.
+Trace/breakpoint trap (core dumped)
+```
+
+LOL ok so running with --no-sandbox fixes that (chmod 4755 file did not) BUT it fails again with 
+```
+./AppRun: line 45: /nrfconnect: No such file or directory
+```
+
+
+The culprit is this bogus $1 in the AppRun script itself that evaluates to nothing and turns APPDIR into something useless.
+```
+if [ -z "$APPDIR" ] ; then
+  # Find the AppDir. It is the directory that contains AppRun.
+  # This assumes that this script resides inside the AppDir or a subdirectory.
+  # If this script is run inside an AppImage, then the AppImage runtime likely has already set $APPDIR
+  path="$(dirname "$(readlink -f "${THIS}")")"
+  while [[ "$path" != "" && ! -e "$path/$1" ]]; do
+    path=${path%/*}
+  done
+  APPDIR="$path"
+fi
+```
+
+Fixed version: runs fine
+```
+if [ -z "$APPDIR" ] ; then
+  # Find the AppDir. It is the directory that contains AppRun.
+  # This assumes that this script resides inside the AppDir or a subdirectory.
+  # If this script is run inside an AppImage, then the AppImage runtime likely has already set $APPDIR
+  path="$(dirname "$(readlink -f "${THIS}")")"
+  while [[ "$path" != "" && ! -e "$path/AppRun" ]]; do
+    path=${path%/*}
+  done
+  APPDIR="$path"
+fi
+
+```
+
+
+AND THEN the udev rules were not installed and the error was hidden in the trace when connecting to the PPK failed...
+
+https://github.com/NordicSemiconductor/nrf-udev

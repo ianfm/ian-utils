@@ -19,6 +19,11 @@ DESKTOP=""
 EXE=""
 RESPONSE=""
 
+# Extra args appended to Exec= in the installed .desktop file.
+# Left empty by default and filled in by detect_exec_args(); see the notes there
+# before hardcoding anything into it.
+EXEC_ARGS=""
+
 # extract the appimage contents -- should include
 # - executable
 # - .desktop example
@@ -89,8 +94,63 @@ find_components() {
 }
 
 
+# --no-sandbox and AppImages, as of 2026:
+#
+# The flag is a Chromium/Electron option. It is NOT a property of AppImages.
+# Only AppImages that bundle Electron/CEF understand it. Everything else --
+# wxWidgets (BambuStudio, OrcaSlicer), Qt (FreeCAD), GTK (Inkscape) -- parses
+# its own argv, hits an unknown option, prints usage and exits 1. The launcher
+# then looks "broken": the icon blips, no window appears, and nothing is logged
+# where you would notice. A Desktop copy of the same entry without the flag
+# works fine, which makes it look like a desktop-database problem when it isn't.
+#
+# Why it got added in the first place: on Ubuntu 24.04+ the AppArmor restriction
+# on unprivileged user namespaces (kernel.apparmor_restrict_unprivileged_userns=1)
+# breaks Chromium's SUID sandbox, so Electron AppImages die at startup with
+# "The SUID sandbox helper binary was found, but is not configured correctly".
+# --no-sandbox makes them start by turning the renderer sandbox OFF -- that is a
+# real security downgrade, not a cosmetic flag, and it applies to every page or
+# file the app opens. Prefer, in order:
+#   1) an AppArmor profile for the app in /etc/apparmor.d/ (Ubuntu ships a
+#      template at /etc/apparmor.d/chrome for reference)
+#   2) chmod 4755 + root-owned chrome-sandbox inside the extracted payload
+#   3) --no-sandbox, only if neither of the above is workable
+#
+# So: detect, ask, and default to no flag.
+detect_exec_args() {
+    EXEC_ARGS=""
+
+    # Electron/CEF payloads ship these; nothing else does.
+    if [[ -e "$TEMPDIR/chrome-sandbox" ]] \
+        || [[ -e "$TEMPDIR/resources/app.asar" ]] \
+        || find "$TEMPDIR" -maxdepth 2 -name 'libEGL.so' -o -maxdepth 2 -name 'snapshot_blob.bin' | grep -q .; then
+        echo ""
+        echo "This looks like an Electron/Chromium AppImage."
+        echo "It may need --no-sandbox on Ubuntu 24.04+ (restricted user namespaces),"
+        echo "but that disables the renderer sandbox. See the notes above this function"
+        echo "for the safer alternatives (AppArmor profile, or setuid chrome-sandbox)."
+        read -r -p "Append --no-sandbox to Exec=? [y/N] " ans
+        if [[ $ans =~ ^[Yy]$ ]]; then
+            EXEC_ARGS=" --no-sandbox"
+        fi
+    else
+        # Non-Chromium toolkit: the flag is guaranteed to break the launcher.
+        echo "Non-Electron AppImage detected; not appending --no-sandbox."
+    fi
+
+    # %F lets the entry receive file arguments, so double-clicking an associated
+    # file (see MimeType= in the .desktop) opens it in the app instead of
+    # launching an empty window.
+    if grep -q '^MimeType=' "$DESKTOP" && [[ $EXEC_ARGS != *%[FfUu]* ]]; then
+        EXEC_ARGS="$EXEC_ARGS %F"
+    fi
+}
+
+
 install_appimage() {
     ## Perform the installation if identified values are correct
+    detect_exec_args
+
     echo ""
     echo ""
     echo "current settings:"
@@ -101,6 +161,7 @@ install_appimage() {
     echo "ICON:    $ICON"
     echo "DESKTOP: $DESKTOP"
     echo "EXE:     $EXE"
+    echo "ARGS:   ${EXEC_ARGS:-(none)}"
     echo "----------------"
 
     # Calculate final file locations
@@ -137,7 +198,7 @@ install_appimage() {
 
     echo "updating icon and exec fields in desktop file"
     # update Exec and Icon fields with final paths
-    sed -i -E "s|^Exec=.*$|Exec=${FINAL_EXE} --no-sandbox|"  "$DESKTOP"
+    sed -i -E "s|^Exec=.*$|Exec=${FINAL_EXE}${EXEC_ARGS}|"  "$DESKTOP"
     sed -i -E "s|^Icon=.*$|Icon=${FINAL_ICON}|" "$DESKTOP"
 
     cat "$DESKTOP"
