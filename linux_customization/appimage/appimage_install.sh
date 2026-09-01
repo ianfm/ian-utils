@@ -1,28 +1,51 @@
 #!/usr/bin/env bash
-set -euo pipefail +x
-# set +x
+set -euo pipefail
 
 # AppImages suck. Install them for real!
-# Run this from wherever the .AppImage is located, probably /home/$USER/Downloads
-
+#
+# Usage: appimage_install.sh [-n|--dry-run] path/to/App.AppImage
+#
+# Extracts the AppImage, asks you to point at its executable/icon/.desktop,
+# then installs:
+#   payload -> /opt/$APPNAME
+#   icon    -> /usr/share/$APPNAME/
+#   entry   -> /usr/share/applications/ and ~/Desktop
+#
+# -n prints every command that would change the system instead of running it.
+# That flag replaces the old appimage_extract.sh, which was this script with
+# the mutating lines echo'd -- except it still ran its sed calls, so the "dry
+# run" rewrote the extracted .desktop for real.
+#
 # TODO: look for existing installs in case we are updating!
 # Should be able to get the right values from the existing install
 
-# Set these correctly for your appimage after extracting it
-IMAGE="Inkscape-xxx.AppImage"
-APPNAME="Inkscape"
-APPDIR="/opt/$APPNAME"
+DRY_RUN=0
+IMAGE=""
+APPNAME=""
+APPDIR=""
 TEMPDIR="./squashfs-root"
 
 ICON=""
 DESKTOP=""
 EXE=""
-RESPONSE=""
-
-# Extra args appended to Exec= in the installed .desktop file.
-# Left empty by default and filled in by detect_exec_args(); see the notes there
-# before hardcoding anything into it.
 EXEC_ARGS=""
+
+usage() {
+    echo "Usage: $0 [-n|--dry-run] path/to/App.AppImage"
+    exit "${1:-1}"
+}
+
+# Everything that touches the system goes through run(), so --dry-run stays dry
+# without needing a second copy of the script to drift out of sync.
+run() {
+    if (( DRY_RUN )); then
+        printf '  DRY RUN: '
+        printf '%q ' "$@"
+        printf '\n'
+    else
+        "$@"
+    fi
+}
 
 # extract the appimage contents -- should include
 # - executable
@@ -32,31 +55,28 @@ extract_appimage() {
     echo "making $IMAGE executable"
     chmod +x "$IMAGE"
     echo "extracting $IMAGE to $TEMPDIR"
+    # redirecting stderr as well somehow prevents file extraction, leave it be
     "$IMAGE" --appimage-extract > /dev/null
 
-    if [[ -d "$TEMPDIR" ]]; then
-        echo "extracted $IMAGE to $TEMPDIR"
-    else
+    if [[ ! -d "$TEMPDIR" ]]; then
         echo "failed to extract"
         exit 1
     fi
-
-    # examine extracted folder for app APPNAME
-    desktop_in_img="$(find "$TEMPDIR" -type f -name '*.desktop' | head -n1)"
+    echo "extracted $IMAGE to $TEMPDIR"
 
     # APPNAME: prefer Name= from the embedded desktop, fallback to filename
+    local desktop_in_img
+    desktop_in_img="$(find "$TEMPDIR" -type f -name '*.desktop' | head -n1)"
     if [[ -f "$desktop_in_img" ]]; then
         APPNAME="$(grep -m1 '^Name=' "$desktop_in_img" | cut -d= -f2)"
         APPNAME="${APPNAME// /-}"   # normalize spaces to dashes
     fi
     APPNAME="${APPNAME:-$(basename "$IMAGE" .AppImage)}"
 
-    # Where we'll install it
     APPDIR="/opt/$APPNAME"
 
     echo ""
-    echo ""
-    echo "App details identified after extraction: "
+    echo "App details identified after extraction:"
     echo "IMAGE:   $IMAGE"
     echo "APPNAME: $APPNAME"
     echo "APPDIR:  $APPDIR"
@@ -64,35 +84,40 @@ extract_appimage() {
 }
 
 find_components() {
+    echo ""
     echo "Look for the executable, desktop file, and icon. The icon might be buried!"
-    echo "When you find them, paste the absolute paths to executable and icon into the prompt"
+    echo "When you find them, paste the absolute paths into the prompts below."
     echo ""
     echo "Desktop file(s):"
     find "$TEMPDIR" -iname '*.desktop' || true
     echo "----------------"
-    echo "Icon candidates:"
-    find "$TEMPDIR" -maxdepth 1 -iname '*.png' -o -iname '*.svg' || true
-    find "$TEMPDIR/resources" -maxdepth 3 -iname '*.png' -o -iname '*.svg' || true
+    echo "Icon candidates (top level first, then a deeper sweep):"
+    find "$TEMPDIR" -maxdepth 1 \( -iname '*.png' -o -iname '*.svg' \) || true
+    find "$TEMPDIR" -mindepth 2 -maxdepth 4 \( -iname '*.png' -o -iname '*.svg' \) 2>/dev/null | head -20 || true
     echo "----------------"
     echo "Executable candidates:"
-    find "$TEMPDIR" -maxdepth 1 -iname '*AppRun' -o -iname "*$APPNAME*" || true
+    find "$TEMPDIR" -maxdepth 1 -type f \( -iname 'AppRun' -o -iname "*$APPNAME*" \) || true
+    # AppRun often just execs a binary in bin/ or usr/bin/, so sweep deeper too
+    find "$TEMPDIR" -mindepth 2 -maxdepth 3 -type f -perm -u+x \
+        \( -iname 'AppRun' -o -iname "*$APPNAME*" \) 2>/dev/null | head -20 || true
     echo "----------------"
+    # For example, these are correct for Logic 2.4.29:
+    #   ./squashfs-root/Logic.desktop
+    #   ./squashfs-root/resources/linux-x64/LogicIcon.png
+    #   ./squashfs-root/Logic
 
-    read -r -p "Paste the path to the desktop file: " deskfile
-    read -r -p "Paste the path to the icon file: " iconfile
-    read -r -p "Paste the path to the executable: " exefile
-    read -r -p "Proceed to install with these files? [y/n] " ans
+    read -r -p "Paste the path to the desktop file: " DESKTOP
+    read -r -p "Paste the path to the icon file: " ICON
+    read -r -p "Paste the path to the executable: " EXE
 
-    if [[ $ans == y || $ans == Y ]]; then
-        ICON="$iconfile"
-        DESKTOP="$deskfile"
-        EXE="$exefile"
-    else
-        echo "exiting"
-        exit 1
-    fi
+    local f
+    for f in "$DESKTOP" "$ICON" "$EXE"; do
+        if [[ ! -f "$f" ]]; then
+            echo "not a file: $f"
+            exit 1
+        fi
+    done
 }
-
 
 # --no-sandbox and AppImages, as of 2026:
 #
@@ -123,7 +148,7 @@ detect_exec_args() {
     # Electron/CEF payloads ship these; nothing else does.
     if [[ -e "$TEMPDIR/chrome-sandbox" ]] \
         || [[ -e "$TEMPDIR/resources/app.asar" ]] \
-        || find "$TEMPDIR" -maxdepth 2 -name 'libEGL.so' -o -maxdepth 2 -name 'snapshot_blob.bin' | grep -q .; then
+        || find "$TEMPDIR" -maxdepth 2 \( -name 'libEGL.so' -o -name 'snapshot_blob.bin' \) | grep -q .; then
         echo ""
         echo "This looks like an Electron/Chromium AppImage."
         echo "It may need --no-sandbox on Ubuntu 24.04+ (restricted user namespaces),"
@@ -134,7 +159,6 @@ detect_exec_args() {
             EXEC_ARGS=" --no-sandbox"
         fi
     else
-        # Non-Chromium toolkit: the flag is guaranteed to break the launcher.
         echo "Non-Electron AppImage detected; not appending --no-sandbox."
     fi
 
@@ -146,109 +170,98 @@ detect_exec_args() {
     fi
 }
 
-
 install_appimage() {
-    ## Perform the installation if identified values are correct
     detect_exec_args
 
-    echo ""
-    echo ""
-    echo "current settings:"
-    echo "----------------"
-    echo "IMAGE:   $IMAGE"
-    echo "APPNAME: $APPNAME"
-    echo "APPDIR:  $APPDIR"
-    echo "ICON:    $ICON"
-    echo "DESKTOP: $DESKTOP"
-    echo "EXE:     $EXE"
-    echo "ARGS:   ${EXEC_ARGS:-(none)}"
-    echo "----------------"
-
-    # Calculate final file locations
-    FINAL_ICON="/usr/share/$APPNAME/$(basename "$ICON")"
-    FINAL_EXE="$APPDIR/$(basename "$EXE")"
-    FINAL_DESKTOP="/usr/share/applications/$(basename "$DESKTOP")"
+    # Where everything lands. The executable keeps its path within the payload,
+    # so AppImages whose binary sits in a subdir (bin/, usr/bin/) still work.
+    local final_icon final_exec preview
+    final_icon="/usr/share/$APPNAME/$(basename "$ICON")"
+    final_exec="$APPDIR/$(realpath --relative-to="$TEMPDIR" "$EXE")${EXEC_ARGS}"
 
     echo ""
     echo "Files will be copied to:"
     echo "----------------"
     echo "ICON:    $ICON"
-    echo "            -> $FINAL_ICON"
+    echo "            -> $final_icon"
     echo "EXE:     $EXE"
-    echo "            -> $FINAL_EXE"
+    echo "            -> Exec=$final_exec"
     echo "DESKTOP: $DESKTOP"
-    echo "            -> $FINAL_DESKTOP"
+    echo "            -> /usr/share/applications/ and $HOME/Desktop"
     echo "APPDIR:  $TEMPDIR"
     echo "            -> $APPDIR"
-    echo -e "----------------\n\n"
+    echo "----------------"
 
+    # Render the entry into a temp dir so it can be reviewed before anything
+    # real is written. desktop-file-install also validates it on the way.
+    preview="$(mktemp -d)"
+    trap 'rm -rf "$preview"' RETURN
+    desktop-file-install --dir="$preview" \
+        --set-key=Exec --set-value="$final_exec" \
+        --set-key=Icon --set-value="$final_icon" \
+        "$DESKTOP"
 
-    read -r -p "install the appimage with the above settings? [y/n] " ans
-    if [[ $ans =~ ^[Yy]$ ]]; then
-        echo "installing appimage"
-    else
+    echo ""
+    echo "desktop entry that will be installed:"
+    echo "----------------"
+    cat "$preview/$(basename "$DESKTOP")"
+    echo "----------------"
+
+    read -r -p "Install the appimage with the above settings? [y/N] " ans
+    if [[ ! $ans =~ ^[Yy]$ ]]; then
         echo "exiting"
         exit 1
     fi
 
-    # Copy files to their final locations
     echo "copying icon to /usr/share/$APPNAME/"
-    sudo mkdir -p "/usr/share/$APPNAME"
-    sudo cp "$ICON" "$FINAL_ICON"
+    run sudo mkdir -p "/usr/share/$APPNAME"
+    run sudo cp "$ICON" "$final_icon"
 
-    echo "updating icon and exec fields in desktop file"
-    # update Exec and Icon fields with final paths
-    sed -i -E "s|^Exec=.*$|Exec=${FINAL_EXE}${EXEC_ARGS}|"  "$DESKTOP"
-    sed -i -E "s|^Icon=.*$|Icon=${FINAL_ICON}|" "$DESKTOP"
+    echo "installing desktop entry"
+    # Desktop entries go to /usr/share/applications/ for system visibility.
+    # --rebuild-mime-info-cache is not the default, and without it the MimeType=
+    # associations are ignored until something else refreshes the cache.
+    run sudo desktop-file-install --rebuild-mime-info-cache \
+        --set-key=Exec --set-value="$final_exec" \
+        --set-key=Icon --set-value="$final_icon" \
+        "$DESKTOP"
 
-    cat "$DESKTOP"
-    read -r -p "Does the desktop file look ok? [y/n] " ans
+    # Same entry on the Desktop. No sudo: it belongs to the user, and both
+    # copies come from one command so they cannot drift apart.
+    run mkdir -p "$HOME/Desktop"
+    run desktop-file-install --dir="$HOME/Desktop" -m 755 \
+        --set-key=Exec --set-value="$final_exec" \
+        --set-key=Icon --set-value="$final_icon" \
+        "$DESKTOP"
 
-    if [[ $ans == y || $ans == Y ]]; then
-        # install desktop entry and move extracted payload
-        sudo desktop-file-install "$DESKTOP"
-        mkdir -p "/home/$USER/Desktop"
-        # -a preserves file attributes
-        sudo cp -a "$DESKTOP" "/home/$USER/Desktop/"
+    echo "moving contents of $TEMPDIR to $APPDIR"
+    run sudo mkdir -p /opt
+    # -T ensures destination treated as a normal target path, not dir merge
+    run sudo mv -T "$TEMPDIR" "$APPDIR"
 
-        echo "moving contents of $TEMPDIR to $APPDIR"
-        sudo mkdir -p "/opt"
-        # -T ensures destination treated as a normal target path, not dir merge
-        sudo mv -T "$TEMPDIR" "$APPDIR"
+    if (( DRY_RUN )); then
+        echo ""
+        echo "dry run: nothing above was executed, $TEMPDIR left in place"
     else
-        echo "desktop file not accepted. Exiting"
-        exit 1
+        echo "installed $APPNAME"
     fi
 }
-
-
 
 ### ----------------------------------------------------------------
 ###                      Script Entrypoint
 ### ----------------------------------------------------------------
 
-if [[ $# -ne 1 ]]; then
-    echo "Usage: $0 path/to/AppImage"
-    exit 1
-fi
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -n|--dry-run) DRY_RUN=1; shift ;;
+        -h|--help)    usage 0 ;;
+        *.AppImage)   IMAGE="$1"; shift ;;
+        *)            echo "unrecognized argument: $1"; usage ;;
+    esac
+done
 
-# Parse appimage arg
-if [[ $1 == *.AppImage ]]; then
-    IMAGE="$1"
-else
-    echo "Usage: $0 path/to/*.AppImage"
-    exit 1
-fi
+[[ -n $IMAGE && -f $IMAGE ]] || usage
 
 extract_appimage
 find_components
-
-echo ""
-read -r -p "Install now with auto-detected values (y), select components manually (n), or exit (x)? [y/n/x] " ans
-if [[ $ans == y || $ans == Y ]]; then
-    install_appimage
-    exit 0
-else
-    echo "exiting"
-    exit 1
-fi
+install_appimage
