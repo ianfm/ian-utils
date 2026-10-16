@@ -1,0 +1,54 @@
+services:
+  pn_main:
+    build:
+      context: .
+      dockerfile: Dockerfile.ros2
+    init: true
+    runtime: nvidia
+    cap_add:    
+      - NET_ADMIN
+    privileged: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    container_name: pn_main
+    network_mode: "host"
+    volumes:
+      - robot_config_volume
+    environment:
+      - ROS_DOMAIN_ID=3
+      - ROS_LOCALHOST_ONLY=0
+    stdin_open: true
+    tty: true
+    stop_grace_period: 1s
+    command: ros2 launch thruster_manager thruster_manager_node_launch.py
+
+
+  user:
+    build:
+      context: .
+      dockerfile: Dockerfile.ros2
+    container_name: user
+    privileged: true
+    network_mode: "host"
+    volumes:
+      - /var/log/amros:/var/log/amros
+    environment:
+      - AM_ID=2
+      - AM_PLATFORM=amiga
+    stdin_open: true
+    tty: true
+    profiles:
+      - test
+    command: bash
+
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all # alternatively, use `count: all` for all GPUs
+    #           capabilities: [gpu]
+              
