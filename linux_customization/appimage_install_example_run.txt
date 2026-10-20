@@ -1,0 +1,74 @@
+zoro@T14:~/Downloads$ ~/src/ian-utils/linux_customization/appimage_install.sh ./Logic-2.4.29-linux-x64.AppImage 
+making ./Logic-2.4.29-linux-x64.AppImage executable
+extracting ./Logic-2.4.29-linux-x64.AppImage to ./squashfs-root
+extracted ./Logic-2.4.29-linux-x64.AppImage to ./squashfs-root
+
+
+App details identified after extraction: 
+IMAGE:   ./Logic-2.4.29-linux-x64.AppImage
+APPNAME: Logic
+APPDIR:  /opt/Logic
+----------------
+Look for the executable, desktop file, and icon. The icon might be buried!
+When you find them, paste the absolute paths to executable and icon into the prompt
+
+Desktop file(s):
+./squashfs-root/Logic.desktop
+----------------
+Icon candidates:
+./squashfs-root/Logic.png
+./squashfs-root/resources/linux-x64/LogicIcon.png
+----------------
+Executable candidates:
+./squashfs-root/AppRun
+./squashfs-root/Logic
+./squashfs-root/Logic.desktop
+./squashfs-root/Logic.png
+----------------
+Paste the path to the desktop file: ./squashfs-root/Logic.desktop
+Paste the path to the icon file: ./squashfs-root/resources/linux-x64/LogicIcon.png
+Paste the path to the executable: ./squashfs-root/Logic
+Proceed to install with these files? [y/n] y
+
+Install now with auto-detected values (y), select components manually (n), or exit (x)? [y/n/x] y
+
+
+current settings:
+----------------
+IMAGE:   ./Logic-2.4.29-linux-x64.AppImage
+APPNAME: Logic
+APPDIR:  /opt/Logic
+ICON:    ./squashfs-root/resources/linux-x64/LogicIcon.png
+DESKTOP: ./squashfs-root/Logic.desktop
+EXE:     ./squashfs-root/Logic
+----------------
+
+Files will be copied to:
+----------------
+ICON:    ./squashfs-root/resources/linux-x64/LogicIcon.png
+            -> /usr/share/Logic/LogicIcon.png
+EXE:     ./squashfs-root/Logic
+            -> /opt/Logic/Logic
+DESKTOP: ./squashfs-root/Logic.desktop
+            -> /usr/share/applications/Logic.desktop
+APPDIR:  ./squashfs-root
+            -> /opt/Logic
+----------------
+
+
+install the appimage with the above settings? [y/n] y
+installing appimage
+copying icon to /usr/share/Logic/
+updating icon and exec fields in desktop file
+[Desktop Entry]
+Name=Logic
+Exec=/opt/Logic/Logic --no-sandbox
+Terminal=false
+Type=Application
+Icon=/usr/share/Logic/LogicIcon.png
+StartupWMClass=Logic
+X-AppImage-Version=2.4.29
+Comment=Debug hardware like a pro
+Categories=Utility
+Does the desktop file look ok? [y/n] y
+moving contents of ./squashfs-root to /opt/Logic
