@@ -3,7 +3,7 @@ set -euo pipefail
 
 # AppImages suck. Install them for real!
 #
-# Usage: appimage_install.sh [-n|--dry-run] path/to/App.AppImage
+# Usage: appimage_install.sh [-n|--dry-run] [-u|--update] path/to/App.AppImage
 #
 # Extracts the AppImage to a scratch dir, works out its executable/icon/desktop
 # entry, then installs:
@@ -14,6 +14,8 @@ set -euo pipefail
 # lying around in whatever directory you happened to run this from.
 #
 #   -n, --dry-run   print every command that would change the system, run none
+#   -u, --update    replace an existing /opt/$APPNAME; without it the script
+#                   refuses to touch an existing install
 #
 #   APPIMAGE_INSTALL_ROOT=/some/dir
 #                   install under /some/dir instead of /, without sudo. For
@@ -21,13 +23,14 @@ set -euo pipefail
 #                   system, e.g.
 #                     APPIMAGE_INSTALL_ROOT=/tmp/stage ./appimage_install.sh x.AppImage
 #
-# Updating: if /opt/$APPNAME already exists it is replaced. The new payload is
-# staged beside it and swapped in by rename, so a failed copy leaves the old
+# Updating: with --update an existing /opt/$APPNAME is replaced. The new payload
+# is staged beside it and swapped in by rename, so a failed copy leaves the old
 # version in place.
 #
 # TODO: reuse values (exe, icon, exec args) from the existing install
 
 DRY_RUN=0
+UPDATE=0
 IMAGE=""
 APPNAME=""
 WORKDIR=""
@@ -47,7 +50,7 @@ else
 fi
 
 usage() {
-    echo "Usage: $0 [-n|--dry-run] path/to/App.AppImage"
+    echo "Usage: $0 [-n|--dry-run] [-u|--update] path/to/App.AppImage"
     exit "${1:-1}"
 }
 
@@ -340,6 +343,7 @@ install_appimage() {
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -n|--dry-run) DRY_RUN=1; shift ;;
+        -u|--update)  UPDATE=1; shift ;;
         -h|--help)    usage 0 ;;
         *.AppImage)   IMAGE="$1"; shift ;;
         *)            echo "unrecognized argument: $1"; usage ;;
@@ -349,6 +353,13 @@ done
 [[ -n $IMAGE && -f $IMAGE ]] || usage
 
 extract_appimage
+
+# APPNAME is only known after extraction, so this is the earliest check point.
+if [[ -e $ROOT/opt/$APPNAME ]] && (( ! UPDATE )); then
+    echo "$ROOT/opt/$APPNAME already exists; rerun with --update to replace it"
+    exit 1
+fi
+
 autodetect_components
 
 echo ""
