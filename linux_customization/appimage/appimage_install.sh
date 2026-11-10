@@ -21,8 +21,11 @@ set -euo pipefail
 #                   system, e.g.
 #                     APPIMAGE_INSTALL_ROOT=/tmp/stage ./appimage_install.sh x.AppImage
 #
-# TODO: look for existing installs in case we are updating!
-# Should be able to get the right values from the existing install
+# Updating: if /opt/$APPNAME already exists it is replaced. The new payload is
+# staged beside it and swapped in by rename, so a failed copy leaves the old
+# version in place.
+#
+# TODO: reuse values (exe, icon, exec args) from the existing install
 
 DRY_RUN=0
 IMAGE=""
@@ -251,6 +254,10 @@ install_appimage() {
     echo "PAYLOAD: $PAYLOAD"
     echo "            -> $appdir"
     echo "----------------"
+    if [[ -e $appdir ]]; then
+        echo "UPDATE: $appdir exists and will be replaced"
+        echo "----------------"
+    fi
 
     # Render the entry into a temp dir so it can be reviewed before anything
     # real is written. desktop-file-install also validates it on the way.
@@ -300,7 +307,19 @@ install_appimage() {
     echo "moving payload to $appdir"
     run "${SUDO[@]}" mkdir -p "$(dirname "$appdir")"
     # -T ensures destination treated as a normal target path, not dir merge
-    run "${SUDO[@]}" mv -T "$PAYLOAD" "$appdir"
+    if [[ -e $appdir ]]; then
+        # Copy into $appdir.new first (the slow, cross-filesystem part), then
+        # swap by rename on the same filesystem. mv -T cannot replace a
+        # non-empty directory, so the old one is moved aside before removal.
+        local staged="$appdir.new" old="$appdir.old"
+        run "${SUDO[@]}" rm -rf "$staged" "$old"
+        run "${SUDO[@]}" mv -T "$PAYLOAD" "$staged"
+        run "${SUDO[@]}" mv -T "$appdir" "$old"
+        run "${SUDO[@]}" mv -T "$staged" "$appdir"
+        run "${SUDO[@]}" rm -rf "$old"
+    else
+        run "${SUDO[@]}" mv -T "$PAYLOAD" "$appdir"
+    fi
 
     if (( DRY_RUN )); then
         echo ""
